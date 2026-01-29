@@ -104,6 +104,7 @@ module "harvester_node" {
   data_disk_count      = var.harvester_node_count * var.data_disk_count
   data_disk_size       = var.data_disk_size
   startup_script       = local.sles_startup_script_file
+  certified_os_image   = var.certified_os_image
   os_image_name        = var.os_image_name
 }
 

@@ -10,6 +10,12 @@ variable "do_token" {
   default     = null
 }
 
+variable "certified_os_image" {
+  description = "Specifies whether to use the Harvester OS image released in the GitHub repository. If set to false, the default OpenSUSE image provided by the cloud provider will be used. Default is 'false'."
+  type        = bool
+  default     = false
+}
+
 variable "os_image_name" {
   type        = string
   description = "Specifies the name of the OpenSUSE image uploaded to the DigitalOcean account. Default is 'openSUSE-Leap-15.6'."
