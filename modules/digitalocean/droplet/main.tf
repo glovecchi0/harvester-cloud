@@ -4,7 +4,7 @@ locals {
   instance_count       = 1
   instance_os_type     = "opensuse"
   ssh_username         = local.instance_os_type
-  certified_image_url  = "https://github.com/glovecchi0/harvester-cloud/releases/latest/download/opensuse-leap-15-6-harv-cloud-image.x86_64-1.15.3.img"
+  certified_image_url  = "https://github.com/glovecchi0/harvester-cloud/releases/download/build-10/opensuse-leap-15-6-harv-cloud-image.x86_64-1.15.3.img.bz2"
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -44,34 +44,22 @@ resource "digitalocean_volume_attachment" "data_disk_attachment" {
   droplet_id = digitalocean_droplet.nodes[0].id
 }
 
-resource "null_resource" "download_certified_image" {
-  count = var.certified_os_image ? 1 : 0
-  provisioner "local-exec" {
-    command = "curl -L -o /tmp/harvester.img ${local.certified_image_url}"
-  }
-}
-
-resource "null_resource" "upload_certified_image" {
-  count      = var.certified_os_image ? 1 : 0
-  depends_on = [null_resource.download_certified_image]
-  provisioner "local-exec" {
-    command = <<EOT
-      IMAGE_ID=$(doctl compute image create "${var.prefix}-opensuse-cert-img" \
-        --image-url ${local.certified_image_url} \
-        --region ${var.region} \
-        --no-header)
-    EOT
-  }
+resource "digitalocean_custom_image" "upload_certified_image" {
+  count   = var.certified_os_image ? 1 : 0
+  name    = "${var.prefix}-opensuse-certified-img"
+  url     = local.certified_image_url
+  regions = ["${var.region}"]
 }
 
 resource "digitalocean_droplet" "nodes" {
-  count    = local.instance_count
-  name     = "node-${var.prefix}-${count.index + 1}"
-  tags     = ["user:${var.prefix}"]
-  region   = var.region
-  size     = var.instance_type
-  image    = var.certified_os_image ? data.digitalocean_image.certified[0].id : data.digitalocean_image.opensuse[0].id
-  ssh_keys = [digitalocean_ssh_key.do_pub_created_ssh.id]
+  count      = local.instance_count
+  depends_on = [digitalocean_custom_image.upload_certified_image]
+  name       = "node-${var.prefix}-${count.index + 1}"
+  tags       = ["user:${var.prefix}"]
+  region     = var.region
+  size       = var.instance_type
+  image      = var.certified_os_image ? digitalocean_custom_image.upload_certified_image[0].id : data.digitalocean_image.opensuse.id
+  ssh_keys   = [digitalocean_ssh_key.do_pub_created_ssh.id]
 }
 
 resource "digitalocean_firewall" "example_firewall" {
