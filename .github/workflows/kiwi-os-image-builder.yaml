@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build ISO with KIWI
         run: |
-          docker run -it --rm --privileged --platform linux/amd64 \
+          docker run --rm --privileged --platform linux/amd64 \
             -v ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder:/build opensuse/leap:15.6 bash -c "
               zypper addrepo http://download.opensuse.org/repositories/Virtualization:/Appliances:/Builder/openSUSE_Leap_15.6 kiwi &&
               zypper --gpg-auto-import-keys refresh &&
