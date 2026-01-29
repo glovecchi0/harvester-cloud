@@ -44,9 +44,9 @@ jobs:
         with:
           name: harvester-os-image
           path: |
-            ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.iso
-            ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.img
-            ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.qcow2
+            ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${{ env.IMAGE_NAME }}.iso
+            ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${{ env.IMAGE_NAME }}.img
+            ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${{ env.IMAGE_NAME }}.qcow2
 
   release:
     runs-on: ubuntu-latest
