@@ -4,7 +4,7 @@ locals {
   instance_count       = 1
   instance_os_type     = "opensuse"
   ssh_username         = local.instance_os_type
-  certified_image_url  = "https://github.com/glovecchi0/harvester-cloud/releases/download/build-10/opensuse-leap-15-6-harv-cloud-image.x86_64-1.15.3.img.bz2"
+  certified_image_url  = "https://github.com/glovecchi0/harvester-cloud/releases/download/build-10/opensuse-leap-15-6-harv-cloud-image.x86_64-1.15.3.qcow2.bz2"
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -48,7 +48,7 @@ resource "digitalocean_custom_image" "upload_certified_image" {
   count   = var.certified_os_image ? 1 : 0
   name    = "${var.prefix}-opensuse-certified-img"
   url     = local.certified_image_url
-  regions = ["${var.region}"]
+  regions = ["nyc3", "${var.region}"]
 }
 
 resource "digitalocean_droplet" "nodes" {
