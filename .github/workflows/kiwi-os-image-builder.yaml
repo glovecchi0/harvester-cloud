@@ -13,7 +13,6 @@ jobs:
       iso-file: ${{ steps.upload.outputs.iso-path }}
       img-file: ${{ steps.upload.outputs.img-path }}
       qcow2-file: ${{ steps.upload.outputs.qcow2-path }}
-      raw-file: ${{ steps.upload.outputs.raw-path }}
     steps:
       - uses: actions/checkout@v3
       - name: Build ISO with KIWI
@@ -45,11 +44,11 @@ jobs:
             ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.raw
       - name: Compress IMG, QCOW2 and RAW with bzip2
         run: |
-          bzip2 -9 \ 
+          bzip2 -9 \
             ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.img
-          bzip2 -9 \ 
+          bzip2 -9 \
             ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.qcow2
-          bzip2 -9 \ 
+          bzip2 -9 \
             ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.raw
       - name: Upload artifact
         id: upload
