@@ -6,6 +6,7 @@ locals {
   os_image_family      = "opensuse-leap"
   os_image_project     = "opensuse-cloud"
   ssh_username         = local.instance_os_type
+  certified_image_url  = var.certified_os_image ? "https://github.com/rancher/harvester-cloud/releases/download/${var.certified_os_image_tag}/opensuse-leap-15-6-harv-cloud-image.x86_64.img" : null
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -96,6 +97,42 @@ resource "google_compute_disk" "data_disk" {
   zone  = random_shuffle.random_zone.result[0]
 }
 
+resource "null_resource" "download_image" {
+  count = var.certified_os_image ? 1 : 0
+  provisioner "local-exec" {
+    command = <<EOT
+      mkdir -p images
+      curl -L -o ${path.cwd}/images/${var.prefix}-image.img ${local.certified_image_url}
+      tar -cvf ${path.cwd}/images/${var.prefix}-image.tar -C ${path.cwd}/images ${var.prefix}-image.img
+    EOT
+  }
+}
+
+resource "google_storage_bucket" "images_bucket" {
+  count         = var.certified_os_image ? 1 : 0
+  name          = "${var.prefix}-certified-img-bucket"
+  location      = var.region
+  force_destroy = true
+}
+
+resource "google_storage_bucket_object" "certified_image" {
+  depends_on = [null_resource.download_image]
+  count      = var.certified_os_image ? 1 : 0
+  name       = "${var.prefix}-opensuse-certified-img.tar"
+  bucket     = google_storage_bucket.images_bucket[0].name
+  source     = "${path.cwd}/images/${var.prefix}-image.tar"
+}
+
+resource "google_compute_image" "upload_certified_image" {
+  depends_on = [google_storage_bucket_object.certified_image]
+  count      = var.certified_os_image ? 1 : 0
+  name       = "${var.prefix}-opensuse-certified-img"
+  raw_disk {
+    source         = "https://storage.googleapis.com/${google_storage_bucket.images_bucket[0].name}/${google_storage_bucket_object.certified_image[0].name}"
+    container_type = "TAR"
+  }
+}
+
 resource "google_compute_instance" "default" {
   count        = local.instance_count
   name         = "${var.prefix}-vm-${count.index + 1}-${random_string.random.result}"
@@ -111,7 +148,7 @@ resource "google_compute_instance" "default" {
     initialize_params {
       type  = var.os_disk_type
       size  = var.os_disk_size
-      image = data.google_compute_image.os_image.self_link
+      image = var.certified_os_image ? google_compute_image.upload_certified_image[0].self_link : data.google_compute_image.os_image.self_link
     }
   }
   dynamic "scratch_disk" {
