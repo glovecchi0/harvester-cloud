@@ -39,6 +39,7 @@ jobs:
             ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.raw
           qemu-img resize -f raw "${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.raw" 1G
       - name: Convert RAW to VHD
+        run: |
           qemu-img convert -f raw -o subformat=fixed,force_size -O vpc \
             ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.raw \
             ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.vhd
