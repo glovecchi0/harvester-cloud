@@ -37,11 +37,16 @@ jobs:
           qemu-img convert -O raw \
             ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.iso \
             ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.raw
+          qemu-img resize -f raw "${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.raw" 1G
+      - name: Convert RAW to VHD
+          qemu-img convert -f raw -o subformat=fixed,force_size -O vpc \
+            ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.raw \
+            ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.vhd
       - name: Prepare QCOW2 for DigitalOcean
         run: |
           bzip2 -9 \
             ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.qcow2
-      - name: Prepare RAW for GCP
+      - name: Prepare RAW for Google Cloud
         run: |
           RAW_PATH="${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${IMAGE_NAME}.raw"
           OUT_DIR="${{ github.workspace }}/modules/harvester/kiwi-os-image-builder"
@@ -54,6 +59,7 @@ jobs:
           name: harvester-os-image
           path: |
             ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${{ env.IMAGE_NAME }}.iso
+            ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${{ env.IMAGE_NAME }}.vhd
             ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${{ env.IMAGE_NAME }}.qcow2.bz2
             ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder/${{ env.IMAGE_NAME }}.raw.tar.gz
 
@@ -73,6 +79,7 @@ jobs:
         run: |
           gh release create "build-${GITHUB_RUN_NUMBER}" \
             ./artifact/${IMAGE_NAME}.iso \
+            ./artifact/${IMAGE_NAME}.vhd \
             ./artifact/${IMAGE_NAME}.qcow2.bz2 \
             ./artifact/${IMAGE_NAME}.raw.tar.gz \
             --title "Certified openSUSE Leap 15.6 image for harvester-cloud - build-${GITHUB_RUN_NUMBER}" \

@@ -21,6 +21,7 @@ projects/harvester-ops/network-creation/vlan*
 
 # Ignore generated OS images to avoid committing large build artifacts
 **/*.iso
+**/*.vhd
 **/*.qcow2.bz2
 **/*.tar.gz
 
