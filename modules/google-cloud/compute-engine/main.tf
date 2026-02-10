@@ -6,7 +6,7 @@ locals {
   os_image_family      = "opensuse-leap"
   os_image_project     = "opensuse-cloud"
   ssh_username         = local.instance_os_type
-  certified_image_url  = var.certified_os_image ? "https://github.com/rancher/harvester-cloud/releases/download/${var.certified_os_image_tag}/opensuse-leap-15-6-harv-cloud-image.x86_64.img" : null
+  certified_image_url  = var.certified_os_image ? "https://github.com/glovecchi0/harvester-cloud/releases/download/${var.certified_os_image_tag}/opensuse-leap-15-6-harv-cloud-image.x86_64.raw.tar.gz" : null
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -101,9 +101,7 @@ resource "null_resource" "download_image" {
   count = var.certified_os_image ? 1 : 0
   provisioner "local-exec" {
     command = <<EOT
-      mkdir -p images
-      curl -L -o ${path.cwd}/images/${var.prefix}-image.img ${local.certified_image_url}
-      tar -cvf ${path.cwd}/images/${var.prefix}-image.tar -C ${path.cwd}/images ${var.prefix}-image.img
+      curl -fL -o ${path.cwd}/${var.prefix}-image.tar.gz ${local.certified_image_url}
     EOT
   }
 }
@@ -118,9 +116,9 @@ resource "google_storage_bucket" "images_bucket" {
 resource "google_storage_bucket_object" "certified_image" {
   depends_on = [null_resource.download_image]
   count      = var.certified_os_image ? 1 : 0
-  name       = "${var.prefix}-opensuse-certified-img.tar"
+  name       = "${var.prefix}-image-raw.tar.gz"
   bucket     = google_storage_bucket.images_bucket[0].name
-  source     = "${path.cwd}/images/${var.prefix}-image.tar"
+  source     = "${path.cwd}/${var.prefix}-image.tar.gz"
 }
 
 resource "google_compute_image" "upload_certified_image" {
@@ -128,8 +126,7 @@ resource "google_compute_image" "upload_certified_image" {
   count      = var.certified_os_image ? 1 : 0
   name       = "${var.prefix}-opensuse-certified-img"
   raw_disk {
-    source         = "https://storage.googleapis.com/${google_storage_bucket.images_bucket[0].name}/${google_storage_bucket_object.certified_image[0].name}"
-    container_type = "TAR"
+    source = "https://storage.googleapis.com/${google_storage_bucket.images_bucket[0].name}/${google_storage_bucket_object.certified_image[0].name}"
   }
 }
 
