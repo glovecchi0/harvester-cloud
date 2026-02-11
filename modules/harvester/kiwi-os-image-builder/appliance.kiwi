@@ -20,7 +20,8 @@
     <profiles>
         <profile name="gcp">
             <preferences>
-                <type image="iso" firmware="efi" kernelcmdline="console=ttyS0"/>
+                <type image="iso" firmware="efi" kernelcmdline="console=ttyS0">
+                    <bootloader name="grub2" timeout="10"/>
                 </type>
             <packages type="image">
                 <package name="google-guest-agent"/>
