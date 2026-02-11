@@ -6,7 +6,8 @@ locals {
   os_image_family      = "opensuse-leap"
   os_image_project     = "opensuse-cloud"
   ssh_username         = local.instance_os_type
-  certified_image_url  = var.certified_os_image ? "https://github.com/glovecchi0/harvester-cloud/releases/download/${var.certified_os_image_tag}/opensuse-leap-15-6-harv-cloud-image.x86_64.raw.tar.gz" : null
+  certified_image_name = "opensuse-leap-15-6-harv-cloud-image.x86_64.raw.tar.gz"
+  certified_image_url  = var.certified_os_image ? "https://github.com/glovecchi0/harvester-cloud/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}" : null
 }
 
 resource "tls_private_key" "ssh_private_key" {

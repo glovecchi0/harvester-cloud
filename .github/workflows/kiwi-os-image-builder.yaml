@@ -5,45 +5,55 @@ on:
 
 env:
   IMAGE_NAME: opensuse-leap-15-6-harv-cloud-image.x86_64
+  IMAGE_NAME_GCP: opensuse-leap-15-6-harv-cloud-image.x86_64-gcp
   BUILD_DIR: ${{ github.workspace }}/modules/harvester/kiwi-os-image-builder
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      iso-file: ${{ steps.upload.outputs.iso-path }}
-      vhd-file: ${{ steps.upload.outputs.vhd-path }}
-      qcow2-file: ${{ steps.upload.outputs.qcow2-path }}
-      raw-file: ${{ steps.upload.outputs.raw-path }}
     steps:
       - uses: actions/checkout@v3
-      - name: Build ISO with KIWI
+      - name: Build ISO with KIWI (base - DO/Azure)
         run: |
           docker run --rm --privileged --platform linux/amd64 \
             -v "${BUILD_DIR}":/build opensuse/leap:15.6 bash -c "
               zypper addrepo http://download.opensuse.org/repositories/Virtualization:/Appliances:/Builder/openSUSE_Leap_15.6 kiwi &&
               zypper --gpg-auto-import-keys refresh &&
               zypper in -y python311-kiwi git binutils qemu-tools squashfs xorriso dosfstools e2fsprogs &&
-              kiwi system build --description /build --set-repo https://download.opensuse.org/distribution/leap/15.6/repo/oss --target-dir /tmp/kiwi-outputs/ &&
+              kiwi system build \
+                --description /build \
+                --set-repo https://download.opensuse.org/distribution/leap/15.6/repo/oss \
+                --target-dir /tmp/kiwi-outputs/ &&
               cp /tmp/kiwi-outputs/*.iso /build/${IMAGE_NAME}.iso
+            "
+      - name: Build ISO with KIWI (GCP profile)
+        run: |
+          docker run --rm --privileged --platform linux/amd64 \
+            -v "${BUILD_DIR}":/build opensuse/leap:15.6 bash -c "
+              zypper addrepo http://download.opensuse.org/repositories/Virtualization:/Appliances:/Builder/openSUSE_Leap_15.6 kiwi &&
+              zypper --gpg-auto-import-keys refresh &&
+              zypper in -y python311-kiwi git binutils qemu-tools squashfs xorriso dosfstools e2fsprogs &&
+              kiwi system build \
+                --description /build \
+                --set-repo https://download.opensuse.org/distribution/leap/15.6/repo/oss \
+                --target-dir /tmp/kiwi-outputs/ \
+                --profile gcp &&
+              cp /tmp/kiwi-outputs/*.iso /build/${IMAGE_NAME_GCP}.iso
             "
       - name: Install qemu-utils and tools
         run: sudo apt update && sudo apt install -y qemu-utils jq bzip2 tar
-      - name: Convert ISO to QCOW2
+      # ===== Base image conversions (DigitalOcean + Azure) =====
+      - name: Convert ISO (base) to QCOW2
         run: |
           ISO_PATH="${BUILD_DIR}/${IMAGE_NAME}.iso"
           QCOW2_PATH="${BUILD_DIR}/${IMAGE_NAME}.qcow2"
           qemu-img convert -O qcow2 "$ISO_PATH" "$QCOW2_PATH"
-      - name: Convert ISO to RAW
+      - name: Convert ISO (base) to RAW
         run: |
           ISO_PATH="${BUILD_DIR}/${IMAGE_NAME}.iso"
           RAW_PATH="${BUILD_DIR}/${IMAGE_NAME}.raw"
           qemu-img convert -O raw "$ISO_PATH" "$RAW_PATH"
-          MB=$((1024 * 1024))
-          SIZE=$(qemu-img info -f raw --output json "$RAW_PATH" | jq -r '.["virtual-size"]')
-          ROUNDED_SIZE=$((($SIZE / $MB + 1) * $MB))
-          qemu-img resize -f raw "$RAW_PATH" "$ROUNDED_SIZE"
-      - name: Convert RAW to VHD
+      - name: Convert RAW to VHD (Azure)
         run: |
           RAW_PATH="${BUILD_DIR}/${IMAGE_NAME}.raw"
           VHD_PATH="${BUILD_DIR}/${IMAGE_NAME}.vhd"
@@ -52,16 +62,22 @@ jobs:
         run: |
           QCOW2_PATH="${BUILD_DIR}/${IMAGE_NAME}.qcow2"
           bzip2 -9 "$QCOW2_PATH"
+      # ===== GCP image conversions =====
+      - name: Convert ISO (GCP) to RAW
+        run: |
+          ISO_PATH="${BUILD_DIR}/${IMAGE_NAME_GCP}.iso"
+          RAW_PATH="${BUILD_DIR}/${IMAGE_NAME_GCP}.raw"
+          qemu-img convert -O raw "$ISO_PATH" "$RAW_PATH"
       - name: Prepare RAW for Google Cloud
         run: |
-          RAW_PATH="${BUILD_DIR}/${IMAGE_NAME}.raw"
+          RAW_PATH="${BUILD_DIR}/${IMAGE_NAME_GCP}.raw"
           OUT_DIR="${BUILD_DIR}"
           cp "$RAW_PATH" "${OUT_DIR}/disk.raw"
-          tar --format=oldgnu -C "$OUT_DIR" -czf "${OUT_DIR}/${IMAGE_NAME}.raw.tar.gz" disk.raw
+          tar --format=oldgnu -C "$OUT_DIR" -czf "${OUT_DIR}/${IMAGE_NAME_GCP}.raw.tar.gz" disk.raw
+      # ===== Upload artifacts =====
       - name: List files before upload
         run: ls -lh "${BUILD_DIR}"
       - name: Upload artifact
-        id: upload
         uses: actions/upload-artifact@v6
         with:
           name: harvester-os-image
@@ -69,7 +85,7 @@ jobs:
             ${{ env.BUILD_DIR }}/${{ env.IMAGE_NAME }}.iso
             ${{ env.BUILD_DIR }}/${{ env.IMAGE_NAME }}.vhd
             ${{ env.BUILD_DIR }}/${{ env.IMAGE_NAME }}.qcow2.bz2
-            ${{ env.BUILD_DIR }}/${{ env.IMAGE_NAME }}.raw.tar.gz
+            ${{ env.BUILD_DIR }}/${{ env.IMAGE_NAME_GCP }}.raw.tar.gz
 
   release:
     runs-on: ubuntu-latest
@@ -89,7 +105,7 @@ jobs:
             ./artifact/${{ env.IMAGE_NAME }}.iso \
             ./artifact/${{ env.IMAGE_NAME }}.vhd \
             ./artifact/${{ env.IMAGE_NAME }}.qcow2.bz2 \
-            ./artifact/${{ env.IMAGE_NAME }}.raw.tar.gz \
+            ./artifact/${{ env.IMAGE_NAME_GCP }}.raw.tar.gz \
             --title "Certified openSUSE Leap 15.6 image for harvester-cloud - build-${GITHUB_RUN_NUMBER}" \
             --notes "Release automatically generated by GitHub Actions."
         env:
