@@ -69,6 +69,11 @@
         <package name="curl"/>
         <package name="patterns-openSUSE-base"/>
     </packages>
+    <packages type="image" profiles="gcp">
+        <!-- Google Cloud integration -->
+        <package name="google-guest-agent"/>
+        <package name="google-osconfig-agent"/>
+    </packages>
     <packages type="bootstrap">
         <package name="udev"/>
         <package name="filesystem"/>
@@ -79,13 +84,4 @@
         <package name="openSUSE-release"/>
         <package name="zypper"/>
     </packages>
-    <profiles>
-        <profile name="gcp">
-            <packages type="image">
-                <!-- Google Cloud integration -->
-                <package name="google-guest-agent"/>
-                <package name="google-osconfig-agent"/>
-            </packages>
-        </profile>
-    </profiles>
 </image>
