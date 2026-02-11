@@ -17,18 +17,6 @@
             <bootloader name="grub2" timeout="10"/>
         </type>
     </preferences>
-    <profiles>
-        <profile name="gcp">
-            <preferences>
-                <type image="iso" firmware="efi" kernelcmdline="console=ttyS0">
-                    <bootloader name="grub2" timeout="10"/>
-                </type>
-            <packages type="image">
-                <package name="google-guest-agent"/>
-                <package name="google-osconfig-agent"/>
-            </packages>
-        </profile>
-    </profiles>
     <repository type="rpm-md">
         <source path="obsrepositories:/"/>
     </repository>
@@ -91,4 +79,17 @@
         <package name="openSUSE-release"/>
         <package name="zypper"/>
     </packages>
+    <profiles>
+        <profile name="gcp">
+            <preferences>
+                <type image="iso" firmware="efi" kernelcmdline="console=ttyS0">
+                    <bootloader name="grub2" timeout="10"/>
+                </type>
+            </preferences>
+            <packages type="image">
+                <package name="google-guest-agent"/>
+                <package name="google-osconfig-agent"/>
+            </packages>
+        </profile>
+    </profiles>
 </image>
