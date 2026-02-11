@@ -17,6 +17,17 @@
             <bootloader name="grub2" timeout="10"/>
         </type>
     </preferences>
+    <profiles>
+        <profile name="gcp">
+            <preferences>
+                <type image="oem" firmware="efi" kernelcmdline="console=ttyS0"/>
+            </preferences>
+            <packages type="image">
+                <package name="google-guest-agent"/>
+                <package name="google-osconfig-agent"/>
+            </packages>
+        </profile>
+    </profiles>
     <repository type="rpm-md">
         <source path="obsrepositories:/"/>
     </repository>
@@ -78,13 +89,5 @@
         <package name="ca-certificates-mozilla"/>
         <package name="openSUSE-release"/>
         <package name="zypper"/>
-    </packages>
-    <profiles>
-        <profile name="gcp"/>
-    </profiles>
-    <packages type="image" profiles="gcp">
-        <!-- Google Cloud integration -->
-        <package name="google-guest-agent"/>
-        <package name="google-osconfig-agent"/>
     </packages>
 </image>
