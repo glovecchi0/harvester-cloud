@@ -15,10 +15,6 @@
         <rpm-check-signatures>false</rpm-check-signatures>
         <type image="iso" firmware="efi" kernelcmdline="console=ttyS0">
             <bootloader name="grub2" timeout="10"/>
-            <systemd>
-                <enable service="google-guest-agent.service"/>
-                <enable service="google-osconfig-agent.service"/>
-            </systemd>
         </type>
     </preferences>
     <repository type="rpm-md">
@@ -86,4 +82,12 @@
         <package name="openSUSE-release"/>
         <package name="zypper"/>
     </packages>
+    <!-- Enable Google services and guest agent at boot -->
+    <scripts type="chroot">
+        <script><![CDATA[
+            systemctl enable google-guest-agent.service
+            systemctl enable google-osconfig-agent.service
+            systemctl enable cloud-init.service
+        ]]></script>
+    </scripts>
 </image>
