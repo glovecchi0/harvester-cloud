@@ -15,6 +15,10 @@
         <rpm-check-signatures>false</rpm-check-signatures>
         <type image="iso" firmware="efi" kernelcmdline="console=ttyS0">
             <bootloader name="grub2" timeout="10"/>
+            <systemd>
+                <enable service="google-guest-agent.service"/>
+                <enable service="google-osconfig-agent.service"/>
+            </systemd>
         </type>
     </preferences>
     <repository type="rpm-md">
