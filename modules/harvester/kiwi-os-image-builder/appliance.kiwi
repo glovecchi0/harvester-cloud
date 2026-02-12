@@ -68,8 +68,6 @@
         <package name="vim"/>
         <package name="curl"/>
         <package name="patterns-openSUSE-base"/>
-    </packages>
-    <packages type="image" profiles="gcp">
         <!-- Google Cloud integration -->
         <package name="google-guest-agent"/>
         <package name="google-osconfig-agent"/>
