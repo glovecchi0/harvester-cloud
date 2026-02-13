@@ -19,10 +19,15 @@ jobs:
       - name: Build RAW image with KIWI (OEM)
         run: |
           docker run --rm --privileged --platform linux/amd64 \
+            --device /dev/loop-control \
+            --device /dev/loop0 \
+            --device /dev/loop1 \
+            --device /dev/loop2 \
+            --device /dev/mapper \
             -v "${BUILD_DIR}":/build opensuse/leap:15.6 bash -c "
               zypper addrepo http://download.opensuse.org/repositories/Virtualization:/Appliances:/Builder/openSUSE_Leap_15.6 kiwi &&
               zypper --gpg-auto-import-keys refresh &&
-              zypper in -y python311-kiwi git binutils qemu-tools dosfstools e2fsprogs gptfdisk &&
+              zypper in -y python311-kiwi git binutils qemu-tools dosfstools e2fsprogs gptfdisk kpartx util-linux &&
               kiwi system build --description /build \
                 --set-repo https://download.opensuse.org/distribution/leap/15.6/repo/oss \
                 --target-dir /tmp/kiwi-outputs/ &&
