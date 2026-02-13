@@ -8,11 +8,6 @@
     <preferences>
         <version>1.0.0</version>
         <packagemanager>zypper</packagemanager>
-        <locale>en_US</locale>
-        <keytable>us</keytable>
-        <timezone>UTC</timezone>
-        <rpm-excludedocs>true</rpm-excludedocs>
-        <rpm-check-signatures>false</rpm-check-signatures>
         <type image="vmx"/>
     </preferences>
     <repository type="rpm-md">
