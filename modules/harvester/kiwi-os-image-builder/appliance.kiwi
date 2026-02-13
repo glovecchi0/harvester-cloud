@@ -13,7 +13,7 @@
         <timezone>UTC</timezone>
         <rpm-excludedocs>true</rpm-excludedocs>
         <rpm-check-signatures>false</rpm-check-signatures>
-        <type image="oem" filesystem="xfs" firmware="efi" kernelcmdline="console=ttyS0 net.ifnames=0">
+        <type image="vmx" filesystem="xfs" firmware="efi" kernelcmdline="console=ttyS0 net.ifnames=0">
             <bootloader name="grub2" timeout="1"/>
         </type>
     </preferences>
