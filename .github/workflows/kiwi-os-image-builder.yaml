@@ -18,16 +18,13 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build RAW image with KIWI (OEM)
         run: |
-          docker run --rm --privileged --platform linux/amd64 \
-            -v "${BUILD_DIR}":/build opensuse/leap:15.6 bash -c "
-              zypper addrepo http://download.opensuse.org/repositories/Virtualization:/Appliances:/Builder/openSUSE_Leap_15.6 kiwi &&
-              zypper --gpg-auto-import-keys refresh &&
-              zypper in -y python311-kiwi git binutils qemu-tools dosfstools e2fsprogs &&
-              kiwi system build --description /build \
-                --set-repo https://download.opensuse.org/distribution/leap/15.6/repo/oss \
-                --target-dir /tmp/kiwi-outputs/ &&
-              cp /tmp/kiwi-outputs/*.raw /build/${IMAGE_NAME}.raw
-            "
+          zypper addrepo http://download.opensuse.org/repositories/Virtualization:/Appliances:/Builder/openSUSE_Leap_15.6 kiwi &&
+          zypper --gpg-auto-import-keys refresh &&
+          zypper in -y python311-kiwi git binutils qemu-tools dosfstools e2fsprogs gdisk systemd kpartx util-linux &&
+          kiwi system build --description ${BUILD_DIR} \
+            --set-repo https://download.opensuse.org/distribution/leap/15.6/repo/oss \
+            --target-dir /tmp/kiwi-outputs/ &&
+          cp /tmp/kiwi-outputs/*.raw ${BUILD_DIR}/${IMAGE_NAME}.raw
       - name: Install qemu-utils and tools
         run: sudo apt update && sudo apt install -y qemu-utils jq bzip2 tar
       - name: Convert RAW to QCOW2
