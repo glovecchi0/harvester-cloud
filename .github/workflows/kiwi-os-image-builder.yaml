@@ -19,13 +19,13 @@ jobs:
       - name: Build RAW image with KIWI (OEM)
         run: |
           sudo apt update && sudo apt install -y zypper
-          zypper addrepo http://download.opensuse.org/repositories/Virtualization:/Appliances:/Builder/openSUSE_Leap_15.6 kiwi &&
-          zypper --gpg-auto-import-keys refresh &&
-          zypper in -y python311-kiwi git binutils qemu-tools dosfstools e2fsprogs gdisk systemd kpartx util-linux &&
-          kiwi system build --description ${BUILD_DIR} \
+          sudo zypper addrepo http://download.opensuse.org/repositories/Virtualization:/Appliances:/Builder/openSUSE_Leap_15.6 kiwi &&
+          sudo zypper --gpg-auto-import-keys refresh &&
+          sudo zypper in -y python311-kiwi git binutils qemu-tools dosfstools e2fsprogs gdisk systemd kpartx util-linux &&
+          sudo kiwi system build --description ${BUILD_DIR} \
             --set-repo https://download.opensuse.org/distribution/leap/15.6/repo/oss \
             --target-dir /tmp/kiwi-outputs/ &&
-          cp /tmp/kiwi-outputs/*.raw ${BUILD_DIR}/${IMAGE_NAME}.raw
+          sudo cp /tmp/kiwi-outputs/*.raw ${BUILD_DIR}/${IMAGE_NAME}.raw
       - name: Install qemu-utils and tools
         run: sudo apt update && sudo apt install -y qemu-utils jq bzip2 tar
       - name: Convert RAW to QCOW2
