@@ -8,7 +8,14 @@
     <preferences>
         <version>1.0.0</version>
         <packagemanager>zypper</packagemanager>
-        <type image="vmx"/>
+        <locale>en_US</locale>
+        <keytable>us</keytable>
+        <timezone>UTC</timezone>
+        <rpm-excludedocs>true</rpm-excludedocs>
+        <rpm-check-signatures>false</rpm-check-signatures>
+        <type image="oem" filesystem="xfs" firmware="efi" kernelcmdline="console=ttyS0 net.ifnames=0">
+            <bootloader name="grub2" timeout="1"/>
+        </type>
     </preferences>
     <repository type="rpm-md">
         <source path="obsrepositories:/"/>
