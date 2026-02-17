@@ -22,25 +22,18 @@ jobs:
             --cap-add SYS_ADMIN \
             --security-opt apparmor=unconfined \
             --device /dev/loop-control \
+            --device /dev/loop0 \
+            --device /dev/loop1 \
+            --device /dev/loop2 \
             --device /dev/mapper \
             -v "${BUILD_DIR}":/build opensuse/leap:15.6 bash -c "
-              # Aggiunge repository KIWI
               zypper addrepo http://download.opensuse.org/repositories/Virtualization:/Appliances:/Builder/openSUSE_Leap_15.6 kiwi &&
               zypper --gpg-auto-import-keys refresh &&
               zypper in -y python311-kiwi git binutils qemu-tools dosfstools e2fsprogs gptfdisk kpartx util-linux systemd &&
-              modprobe loop max_loop=64 &&
-              RAW_PATH=/tmp/kiwi-outputs/${IMAGE_NAME}.raw &&
-              mkdir -p /tmp/kiwi-outputs &&
-              dd if=/dev/zero of=\$RAW_PATH bs=1M count=2048 &&
-              LOOP=\$(losetup -f) &&
-              losetup \$LOOP \$RAW_PATH &&
-              kpartx -a \$LOOP &&
               kiwi system build --description /build \
                 --set-repo https://download.opensuse.org/distribution/leap/15.6/repo/oss \
                 --target-dir /tmp/kiwi-outputs/ &&
-              cp /tmp/kiwi-outputs/*.raw /build/${IMAGE_NAME}.raw &&
-              kpartx -d \$LOOP &&
-              losetup -d \$LOOP
+              cp /tmp/kiwi-outputs/*.raw /build/${IMAGE_NAME}.raw
             "
       - name: Install qemu-utils and tools
         run: sudo apt update && sudo apt install -y qemu-utils jq bzip2 tar
