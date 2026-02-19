@@ -11,37 +11,38 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
+      iso-file: ${{ steps.upload.outputs.iso-path }}
       vhd-file: ${{ steps.upload.outputs.vhd-path }}
       qcow2-file: ${{ steps.upload.outputs.qcow2-path }}
       raw-file: ${{ steps.upload.outputs.raw-path }}
     steps:
       - uses: actions/checkout@v3
-      - name: Build RAW image with KIWI (OEM)
+      - name: Build ISO with KIWI
         run: |
           docker run --rm --privileged --platform linux/amd64 \
-            --cap-add SYS_ADMIN \
-            --security-opt apparmor=unconfined \
-            --device /dev/loop-control \
-            --device /dev/loop0 \
-            --device /dev/loop1 \
-            --device /dev/loop2 \
-            --device /dev/mapper \
             -v "${BUILD_DIR}":/build opensuse/leap:15.6 bash -c "
               zypper addrepo http://download.opensuse.org/repositories/Virtualization:/Appliances:/Builder/openSUSE_Leap_15.6 kiwi &&
               zypper --gpg-auto-import-keys refresh &&
-              zypper in -y python311-kiwi git binutils qemu-tools dosfstools e2fsprogs gptfdisk kpartx util-linux systemd &&
-              kiwi system build --description /build \
-                --set-repo https://download.opensuse.org/distribution/leap/15.6/repo/oss \
-                --target-dir /tmp/kiwi-outputs/ &&
-              cp /tmp/kiwi-outputs/*.raw /build/${IMAGE_NAME}.raw
+              zypper in -y python311-kiwi git binutils qemu-tools squashfs xorriso dosfstools e2fsprogs &&
+              kiwi system build --description /build --set-repo https://download.opensuse.org/distribution/leap/15.6/repo/oss --target-dir /tmp/kiwi-outputs/ &&
+              cp /tmp/kiwi-outputs/*.iso /build/${IMAGE_NAME}.iso
             "
       - name: Install qemu-utils and tools
         run: sudo apt update && sudo apt install -y qemu-utils jq bzip2 tar
-      - name: Convert RAW to QCOW2
+      - name: Convert ISO to QCOW2
         run: |
-          RAW_PATH="${BUILD_DIR}/${IMAGE_NAME}.raw"
+          ISO_PATH="${BUILD_DIR}/${IMAGE_NAME}.iso"
           QCOW2_PATH="${BUILD_DIR}/${IMAGE_NAME}.qcow2"
-          qemu-img convert -f raw -O qcow2 "$RAW_PATH" "$QCOW2_PATH"
+          qemu-img convert -O qcow2 "$ISO_PATH" "$QCOW2_PATH"
+      - name: Convert ISO to RAW
+        run: |
+          ISO_PATH="${BUILD_DIR}/${IMAGE_NAME}.iso"
+          RAW_PATH="${BUILD_DIR}/${IMAGE_NAME}.raw"
+          qemu-img convert -O raw "$ISO_PATH" "$RAW_PATH"
+          MB=$((1024 * 1024))
+          SIZE=$(qemu-img info -f raw --output json "$RAW_PATH" | jq -r '.["virtual-size"]')
+          ROUNDED_SIZE=$((($SIZE / $MB + 1) * $MB))
+          qemu-img resize -f raw "$RAW_PATH" "$ROUNDED_SIZE"
       - name: Convert RAW to VHD
         run: |
           RAW_PATH="${BUILD_DIR}/${IMAGE_NAME}.raw"
@@ -65,9 +66,10 @@ jobs:
         with:
           name: harvester-os-image
           path: |
+            ${{ env.BUILD_DIR }}/${{ env.IMAGE_NAME }}.iso
             ${{ env.BUILD_DIR }}/${{ env.IMAGE_NAME }}.vhd
             ${{ env.BUILD_DIR }}/${{ env.IMAGE_NAME }}.qcow2.bz2
-            ${{ env.IMAGE_NAME }}.raw.tar.gz
+            ${{ env.BUILD_DIR }}/${{ env.IMAGE_NAME }}.raw.tar.gz
 
   release:
     runs-on: ubuntu-latest
@@ -84,6 +86,7 @@ jobs:
       - name: Create Release
         run: |
           gh release create "build-${GITHUB_RUN_NUMBER}" \
+            ./artifact/${{ env.IMAGE_NAME }}.iso \
             ./artifact/${{ env.IMAGE_NAME }}.vhd \
             ./artifact/${{ env.IMAGE_NAME }}.qcow2.bz2 \
             ./artifact/${{ env.IMAGE_NAME }}.raw.tar.gz \

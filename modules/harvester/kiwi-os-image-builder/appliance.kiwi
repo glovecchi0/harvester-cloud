@@ -13,8 +13,8 @@
         <timezone>UTC</timezone>
         <rpm-excludedocs>true</rpm-excludedocs>
         <rpm-check-signatures>false</rpm-check-signatures>
-        <type image="oem" filesystem="xfs" firmware="efi" kernelcmdline="console=ttyS0 net.ifnames=0">
-            <bootloader name="grub2" timeout="1"/>
+        <type image="iso" firmware="efi" kernelcmdline="console=ttyS0">
+            <bootloader name="grub2" timeout="10"/>
         </type>
     </preferences>
     <repository type="rpm-md">
@@ -24,7 +24,6 @@
         <!-- Base system / Boot -->
         <package name="kernel-default"/>
         <package name="dracut-kiwi-live"/>
-        <package name="dracut-kiwi-oem-repart"/>
         <package name="grub2"/>
         <package name="grub2-i386-pc"/>
         <package name="grub2-x86_64-efi" arch="x86_64"/>
