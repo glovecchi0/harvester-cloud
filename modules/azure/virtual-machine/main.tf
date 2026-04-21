@@ -8,8 +8,8 @@ locals {
   os_image_sku         = "gen1"
   os_image_version     = "latest"
   ssh_username         = local.instance_os_type
-  certified_image_name = "opensuse-leap-15-6-harv-cloud-image.x86_64.vhd"
-  certified_image_url  = var.certified_os_image ? "https://github.com/rancher/harvester-cloud/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}" : null
+  certified_image_name = "opensuse-leap-16-0-harv-cloud-image.x86_64.vhd"
+  certified_image_url  = var.certified_os_image ? "https://github.com/glovecchi0/harvester-cloud/releases/download/${var.certified_os_image_tag}/${local.certified_image_name}" : null
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -261,6 +261,6 @@ resource "null_resource" "cleanup_certified_vhd" {
   depends_on = [azurerm_linux_virtual_machine.vm]
   count      = var.certified_os_image ? 1 : 0
   provisioner "local-exec" {
-    command = "rm ${path.cwd}/opensuse-leap-15-6-harv-cloud-image.x86_64.vhd"
+    command = "rm ${path.cwd}/${local.certified_image_name}"
   }
 }
