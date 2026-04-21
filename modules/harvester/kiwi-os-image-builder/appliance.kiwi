@@ -75,7 +75,7 @@
         <package name="google-guest-agent"/>
         <package name="google-osconfig-agent"/>
         <!-- Azure Agents -->
-        <package name="walinuxagent"/>
+        <package name="waagent"/>
     </packages>
     <packages type="bootstrap">
         <package name="udev"/>
