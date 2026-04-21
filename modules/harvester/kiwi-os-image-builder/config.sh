@@ -4,7 +4,6 @@ set -ex
 systemctl enable sshd
 systemctl enable libvirtd
 systemctl enable wicked
-systemctl enable wicked-dhcp4
 systemctl enable cloud-init
 systemctl enable cloud-init-local
 systemctl enable cloud-config
