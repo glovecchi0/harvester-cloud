@@ -11,11 +11,14 @@ on:
 jobs:
   analyze-idea:
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
       issues: read
+
     env:
       REPO: "rancher/harvester-cloud"
+
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -26,26 +29,24 @@ jobs:
           ISSUE=${{ inputs.issue_number || github.event.issue.number }}
           echo "=== Fetching issue $ISSUE from $REPO ==="
 
-          ISSUE_JSON=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/$REPO/issues/$ISSUE)
-          COMMENTS_JSON=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/$REPO/issues/$ISSUE/comments)
+          ISSUE_JSON=$(curl -s \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/$REPO/issues/$ISSUE")
 
-          # Check for valid title field
+          COMMENTS_JSON=$(curl -s \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/$REPO/issues/$ISSUE/comments")
+
           if ! echo "$ISSUE_JSON" | jq -e '.title' >/dev/null 2>&1; then
             echo "ERROR: Issue $ISSUE not found or access denied!"
             echo "$ISSUE_JSON"
             exit 1
           fi
 
-          # Extract title and body
           TITLE=$(echo "$ISSUE_JSON" | jq -r '.title // empty')
           BODY=$(echo "$ISSUE_JSON" | jq -r '.body // empty')
-
-          # Extract comments (may be empty)
           COMMENTS=$(echo "$COMMENTS_JSON" | jq -r '.[].body // empty')
 
-          # Save issue data into a file
           echo "=== ISSUE TITLE ===" > issue_data.txt
           echo "$TITLE" >> issue_data.txt
           echo -e "\n=== ISSUE BODY ===" >> issue_data.txt
@@ -64,24 +65,25 @@ jobs:
           for PAGE in $(seq 1 $MAX_PAGES); do
             echo "Fetching page $PAGE..."
 
-            RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            RESPONSE=$(curl -s \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
               "https://api.github.com/repos/$REPO/issues?state=all&per_page=100&page=$PAGE&sort=updated&direction=desc")
 
             TITLES=$(echo "$RESPONSE" | jq -r '.[].title // empty')
 
-            # Stop early if no results
             if [ -z "$TITLES" ]; then
               echo "No more issues found. Stopping."
               break
             fi
 
-            ALL_TITLES="$ALL_TITLES;$TITLES"
+            ALL_TITLES="${ALL_TITLES}"$'\n'"${TITLES}"
           done
 
-          # Clean leading semicolon
-          ALL_TITLES=$(echo "$ALL_TITLES" | sed 's/^;//')
-
-          echo "LAST_ISSUE_TITLES=$ALL_TITLES" >> $GITHUB_ENV
+          {
+            echo 'LAST_ISSUE_TITLES<<EOF'
+            echo "$ALL_TITLES"
+            echo 'EOF'
+          } >> "$GITHUB_ENV"
 
       # Load issue data into environment variable for Gemini
       - name: Load Issue Data to Env
@@ -90,9 +92,9 @@ jobs:
             echo 'ISSUE_DATA<<EOF'
             cat issue_data.txt
             echo EOF
-          } >> $GITHUB_ENV
+          } >> "$GITHUB_ENV"
 
-      # Run Gemini AI to analyze duplicates
+      # Run Gemini directly via API
       - name: Analyze with Gemini
         id: gemini_analysis
         run: |
@@ -162,6 +164,12 @@ jobs:
 
           OUTPUT=$(jq -r '.candidates[0].content.parts[0].text // empty' gemini_response.json)
 
+          if [ -z "$OUTPUT" ]; then
+            echo "ERROR: Empty response from Gemini"
+            cat gemini_response.json
+            exit 1
+          fi
+
           {
             echo "output<<EOF"
             echo "$OUTPUT"
@@ -172,5 +180,6 @@ jobs:
       - name: Publish Report
         if: always()
         run: |
-          echo "## Gemini Idea Analysis Report" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.gemini_analysis.outputs.output }}" >> $GITHUB_STEP_SUMMARY
+          echo "## Gemini Idea Analysis Report" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ steps.gemini_analysis.outputs.output }}" >> "$GITHUB_STEP_SUMMARY"
