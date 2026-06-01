@@ -19,11 +19,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Verify Gemini API
-        run: |
-          curl -s \
-            -H "x-goog-api-key: ${{ secrets.GEMINI_API_KEY }}" \
-            "https://generativelanguage.googleapis.com/v1beta/models"
       # Fetch issue data: title, body, and comments
       - name: Fetch Issue Data
         run: |
