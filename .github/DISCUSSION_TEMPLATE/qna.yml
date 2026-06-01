@@ -1,5 +1,6 @@
 name: Q&A
 description: Ask a question about Harvester Cloud
+category: Q&A
 title: "[QUESTION] "
 labels:
   - question
