@@ -8,6 +8,11 @@ locals {
   certified_image_name = "opensuse-leap-16-0-harv-cloud-image.x86_64.vhd"
   certified_image_url  = "https://github.com/rancher/harvester-cloud/releases/download/latest/${local.certified_image_name}"
   certified_image_sum  = "b18a460739d97206032e4dc66ea0c24e3bab98463d41571b798aee84e97d7fb4f4cba9c2bf83af42ceab88dcadd42918bcfeea1bc330fb774544b246d4d1dc55"
+  common_tags = {
+    Name       = "${var.prefix}"
+    Workload   = "harvester"
+    Managed_by = "terraform"
+  }
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -32,6 +37,7 @@ resource "local_file" "public_key_pem" {
 resource "azurerm_resource_group" "rg" {
   name     = "${var.prefix}-rg"
   location = var.region
+  tags     = local.common_tags
 }
 
 resource "azurerm_storage_account" "vhd" {
@@ -41,6 +47,7 @@ resource "azurerm_storage_account" "vhd" {
   account_tier                    = "Standard"
   account_replication_type        = "LRS"
   allow_nested_items_to_be_public = false
+  tags                            = local.common_tags
 }
 
 resource "azurerm_storage_container" "vhds" {
@@ -114,6 +121,7 @@ resource "azurerm_image" "harvester" {
     blob_uri     = azurerm_storage_blob.harvester_vhd.url
     storage_type = "Standard_LRS"
   }
+  tags = local.common_tags
 }
 
 resource "azurerm_virtual_network" "vnet" {
@@ -122,6 +130,7 @@ resource "azurerm_virtual_network" "vnet" {
   address_space       = [var.ip_cidr_range]
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
+  tags                = local.common_tags
 }
 
 resource "azurerm_subnet" "subnet" {
@@ -137,12 +146,14 @@ resource "azurerm_public_ip" "vm_ip" {
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   allocation_method   = "Static"
+  tags                = local.common_tags
 }
 
 resource "azurerm_network_security_group" "nsg" {
   name                = "${var.prefix}-nsg"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
+  tags                = local.common_tags
 }
 
 resource "azurerm_network_security_rule" "allow_inbound" {
@@ -192,13 +203,13 @@ resource "azurerm_network_interface" "nic" {
   name                = "${var.prefix}-nic"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-
   ip_configuration {
     name                          = "primary"
     subnet_id                     = azurerm_subnet.subnet[0].id
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = azurerm_public_ip.vm_ip.id
   }
+  tags = local.common_tags
 }
 
 resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
@@ -237,6 +248,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   }
   source_image_id = azurerm_image.harvester.id
   custom_data     = var.startup_script != null ? base64encode(var.startup_script) : null
+  tags            = local.common_tags
 }
 
 resource "azurerm_managed_disk" "data_disk" {
@@ -247,6 +259,7 @@ resource "azurerm_managed_disk" "data_disk" {
   storage_account_type = var.data_disk_type
   create_option        = "Empty"
   disk_size_gb         = var.data_disk_size
+  tags                 = local.common_tags
 }
 
 resource "azurerm_virtual_machine_data_disk_attachment" "data_disk_attachment" {

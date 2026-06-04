@@ -8,6 +8,11 @@ locals {
   certified_image_name = "opensuse-leap-16-0-harv-cloud-image.x86_64.raw.tar.gz"
   certified_image_url  = "https://github.com/rancher/harvester-cloud/releases/download/latest/${local.certified_image_name}"
   certified_image_sum  = "a6e789a154d365361444dcf26a060391906976b718d985ecaf47b295e989ca1e5f363af86422527c2d41e78c439a04fef4708b7f6ef0a1bc06b63875a05745bc"
+  common_labels = {
+    name       = "${var.prefix}"
+    workload   = "harvester"
+    managed_by = "terraform"
+  }
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -94,11 +99,12 @@ resource "random_shuffle" "random_zone" {
 }
 
 resource "google_compute_disk" "data_disk" {
-  count = var.data_disk_count
-  name  = "${var.prefix}-data-disk-${count.index + 1}-${random_string.random.result}"
-  type  = var.data_disk_type
-  size  = var.data_disk_size
-  zone  = random_shuffle.random_zone.result[0]
+  count  = var.data_disk_count
+  name   = "${var.prefix}-data-disk-${count.index + 1}-${random_string.random.result}"
+  type   = var.data_disk_type
+  size   = var.data_disk_size
+  zone   = random_shuffle.random_zone.result[0]
+  labels = local.common_labels
 }
 
 resource "null_resource" "download_image" {
@@ -134,6 +140,7 @@ resource "google_storage_bucket" "images_bucket" {
   name          = "${var.prefix}-certified-img-bucket"
   location      = var.region
   force_destroy = true
+  labels        = local.common_labels
 }
 
 resource "google_storage_bucket_object" "certified_image" {
@@ -149,6 +156,7 @@ resource "google_compute_image" "upload_certified_image" {
   raw_disk {
     source = "https://storage.googleapis.com/${google_storage_bucket.images_bucket.name}/${google_storage_bucket_object.certified_image.name}"
   }
+  labels = local.common_labels
 }
 
 resource "google_compute_instance" "default" {
@@ -157,6 +165,7 @@ resource "google_compute_instance" "default" {
   machine_type = var.instance_type
   zone         = random_shuffle.random_zone.result[0]
   tags         = ["${var.prefix}"]
+  labels       = local.common_labels
   scheduling {
     preemptible        = var.spot_instance
     provisioning_model = var.spot_instance ? "SPOT" : "STANDARD"

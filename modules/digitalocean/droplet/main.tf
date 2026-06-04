@@ -9,6 +9,11 @@ locals {
   certified_image_name = "opensuse-leap-16-0-harv-cloud-image.x86_64.qcow2.bz2"
   certified_image_url  = "https://github.com/rancher/harvester-cloud/releases/download/latest/${local.certified_image_name}"
   certified_image_sum  = "5cc036be8be94c5d6c0034e3444b61498fc82b827bda2369e462ad13ff2d255d4acfb17af24ebfcf1ac8d3450e7fe3074476932e085cee7323572dac6366e57a"
+  common_tags = [
+    "workload:harvester",
+    "managed-by:terraform",
+    "user:${var.prefix}"
+  ]
 }
 
 resource "tls_private_key" "ssh_private_key" {
@@ -40,6 +45,7 @@ resource "digitalocean_volume" "data_disk" {
   name   = "${var.prefix}-data-disk-${count.index + 1}"
   size   = var.data_disk_size
   region = var.region
+  tags   = local.common_tags
 }
 
 resource "digitalocean_volume_attachment" "data_disk_attachment" {
@@ -90,7 +96,7 @@ resource "digitalocean_droplet" "nodes" {
   count      = local.instance_count
   depends_on = [digitalocean_custom_image.upload_certified_image]
   name       = "node-${var.prefix}-${count.index + 1}"
-  tags       = ["user:${var.prefix}"]
+  tags       = local.common_tags
   region     = var.region
   size       = var.instance_type
   image      = digitalocean_custom_image.upload_certified_image.id
