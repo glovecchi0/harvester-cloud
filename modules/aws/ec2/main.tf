@@ -7,6 +7,11 @@ locals {
   certified_image_name = "opensuse-leap-16-0-harv-cloud-image.x86_64.vhd"
   certified_image_url  = "https://github.com/rancher/harvester-cloud/releases/download/latest/${local.certified_image_name}"
   certified_image_sum  = "b18a460739d97206032e4dc66ea0c24e3bab98463d41571b798aee84e97d7fb4f4cba9c2bf83af42ceab88dcadd42918bcfeea1bc330fb774544b246d4d1dc55"
+  common_tags = {
+    Name       = "${var.prefix}"
+    Workload   = "harvester"
+    Managed_by = "terraform"
+  }
 }
 
 resource "tls_private_key" "ssh" {
@@ -144,18 +149,14 @@ resource "aws_ami" "opensuse_ami" {
     volume_size = 2
     volume_type = "gp3"
   }
-  tags = {
-    Name = "${var.prefix}-ami"
-  }
+  tags = local.common_tags
 }
 
 resource "aws_vpc" "vpc" {
   cidr_block           = "${var.ip_cidr_range}/24"
   enable_dns_support   = true
   enable_dns_hostnames = true
-  tags = {
-    Name = "${var.prefix}-vpc"
-  }
+  tags                 = local.common_tags
 }
 
 resource "aws_subnet" "public" {
@@ -163,9 +164,7 @@ resource "aws_subnet" "public" {
   cidr_block              = "${var.ip_cidr_range}/25"
   map_public_ip_on_launch = true
   availability_zone       = local.available_azs[0]
-  tags = {
-    Name = "${var.prefix}-subnet"
-  }
+  tags                    = local.common_tags
   lifecycle {
     precondition {
       condition     = local.selected_az != null
@@ -176,9 +175,7 @@ resource "aws_subnet" "public" {
 
 resource "aws_internet_gateway" "gateway" {
   vpc_id = aws_vpc.vpc.id
-  tags = {
-    Name = "${var.prefix}-internet-gateway"
-  }
+  tags   = local.common_tags
 }
 
 resource "aws_route_table" "public" {
@@ -246,9 +243,7 @@ resource "aws_security_group" "sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  tags = {
-    Name = "${var.prefix}-firewall"
-  }
+  tags = local.common_tags
 }
 
 resource "aws_eip" "static_ip" {
@@ -267,9 +262,7 @@ resource "aws_instance" "vm" {
   vpc_security_group_ids      = [aws_security_group.sg.id]
   associate_public_ip_address = false
   key_name                    = var.create_ssh_key_pair ? aws_key_pair.generated[0].key_name : null
-  tags = {
-    Name = "${var.prefix}-vm"
-  }
+  tags                        = local.common_tags
   cpu_options {
     nested_virtualization = "enabled"
   }
@@ -291,9 +284,7 @@ resource "aws_ebs_volume" "data" {
   type              = "gp3"
   iops              = "16000"
   throughput        = "2000"
-  tags = {
-    Name = "${var.prefix}-vm"
-  }
+  tags              = local.common_tags
 }
 
 resource "aws_volume_attachment" "data_attach" {
