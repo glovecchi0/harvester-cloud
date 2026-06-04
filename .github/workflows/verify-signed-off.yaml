@@ -1,0 +1,36 @@
+name: Verify Signed-off-by
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  verify_signed_off_commits:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Verify Signed-off-by trailer
+        run: |
+          set -e
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin "${{ github.base_ref }}" "${{ github.head_ref }}"
+            BASE_SHA=$(git merge-base origin/${{ github.base_ref }} origin/${{ github.head_ref }})
+            COMMITS=$(git rev-list "$BASE_SHA..origin/${{ github.head_ref }}")
+          else
+            COMMITS=$(git rev-list "${{ github.event.before }}..${{ github.sha }}")
+          fi
+          for COMMIT in $COMMITS; do
+            echo "Checking commit $COMMIT"
+            if ! git show -s --format=%B "$COMMIT" | grep -q "^Signed-off-by:"; then
+              echo "ERROR: commit $COMMIT is missing Signed-off-by trailer."
+              exit 1
+            fi
+          done
+          echo "All commits contain Signed-off-by trailer."
