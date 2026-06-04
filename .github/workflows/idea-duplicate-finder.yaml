@@ -58,6 +58,8 @@ jobs:
         run: |
           echo "=== Fetching recent issue titles from $REPO ==="
 
+          CURRENT_ISSUE=${{ inputs.issue_number || github.event.issue.number }}
+
           MAX_PAGES=5
           ALL_TITLES=""
 
@@ -67,7 +69,11 @@ jobs:
             RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
               "https://api.github.com/repos/$REPO/issues?state=all&per_page=100&page=$PAGE&sort=updated&direction=desc")
 
-            TITLES=$(echo "$RESPONSE" | jq -r '.[].title // empty')
+            TITLES=$(echo "$RESPONSE" | jq -r --arg id "$CURRENT_ISSUE" '
+              .[]
+              | select(.number != ($id|tonumber))
+              | .title // empty
+            ')
 
             # Stop early if no results
             if [ -z "$TITLES" ]; then
