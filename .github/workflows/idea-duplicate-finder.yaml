@@ -77,13 +77,17 @@ jobs:
               break
             fi
 
-            ALL_TITLES="$ALL_TITLES;$TITLES"
+            ALL_TITLES="$ALL_TITLES"$'\n'"$TITLES"
           done
 
           # Clean leading semicolon
-          ALL_TITLES=$(echo "$ALL_TITLES" | sed 's/^;//')
+          ALL_TITLES=$(echo "$ALL_TITLES" | sed '/^$/d' | tr '\n' ' ' | sed 's/  */ /g')
 
-          echo "LAST_ISSUE_TITLES=$ALL_TITLES" >> $GITHUB_ENV
+          {
+            echo "LAST_ISSUE_TITLES<<EOF"
+            echo "$ALL_TITLES"
+            echo "EOF"
+          } >> $GITHUB_ENV
       # Load issue data into environment variable for Gemini
       - name: Load Issue Data to Env
         run: |
