@@ -1,86 +1,90 @@
 # Contributing Guideline
 
-Thanks for contributing to the project!
+Thanks for contributing to this project!
 
-Please review and follow the [Code of Conduct](https://github.com/rancher/harvester-cloud/blob/main/CODE_OF_CONDUCT.md).
+Please follow the [Code of Conduct](https://github.com/rancher/harvester-cloud/blob/main/CODE_OF_CONDUCT.md):
 
-Contributing to the project is not limited to writing the code or submitting the PR. We will also appreciate if you can file issues, provide feedback and suggest new features.
+## Important: Issue required before any Pull Request
 
-Of course, contributing the code is more than welcome! To keep things simple, if you're fixing a small issue, you can simply submit a PR and we will pick it up. However, if you're planning to submit a bigger PR to implement a new feature or fix a relatively complex bug, please open an issue that explains the change and the motivation for it. If you're addressing a bug, please explain how to reproduce it.
+Before opening a Pull Request, you MUST open an issue first.
 
-## Opening PRs and organizing commits
+The issue is required to:
+- describe the problem or feature request
+- allow discussion before implementation
+- avoid uncoordinated or duplicated work
 
-PRs should generally address only 1 issue at a time. If you need to fix two bugs, open two separate PRs. This will keep the scope of your pull requests smaller and allow them to be reviewed and merged more quickly.
+Pull Requests without a related issue may be closed.
 
-When possible, fill out as much detail in the pull request as is reasonable. Explain main design considerations and behavior changes when adequate. Refer to the Jira case or the GitHub issue that you are addressing with the PR.
+## Contributions
 
-Generally, pull requests should consist of a single logical commit. However, if your PR is for a large feature, you may need a more logical breakdown of commits. This is fine as long as each commit is a single logical unit.
+Contributions are not limited to code. Issues, feedback, and feature suggestions are welcome.
 
-The other exception to this single-commit rule is if your PR includes a change to a vendored dependency or generated code. To make reviewing easier, these changes should be segregated into their own commit.
+## Pull Request Guidelines
 
-## Workflow to open a Pull Request
+Each PR should address a single issue.
 
-- Clone or pull all changes.
+Keep PRs small and focused to make review easier.
 
-```sh
-git clone  git@github.com:rancher/harvester-cloud.git
+For large changes, multiple logical commits are allowed.
 
-OR
+## Commit Requirements (DCO / Signed-off-by)
 
-git pull --all (if already cloned)
-```
-**This step internally does: git remote add origin https://github.com/rancher/harvester-cloud.git**
+All commits must include a Signed-off-by trailer.
 
-- Fork the project from [here](https://github.com/rancher/harvester-cloud/fork).
+Use:
 
-```sh
-cd <cloned directory path>
-git remote add mycopy <forked-url>
-```
-**Example: git remote add mycopy git@github.com:<your_github_id>/harvester-cloud.git**
+git commit -s -m "meaningful commit message"
 
-- Create your Feature Branch.
+All commits are verified by CI. Missing Signed-off-by will fail checks.
 
-```sh
-git checkout -b <feature-branch-name>
-```
-- Make changes in the code.
+This ensures compliance with the Developer Certificate of Origin (DCO).
 
-- Use `terraform fmt` to lint and format any changes that occurred.
+## Workflow
 
-```sh
-terraform fmt -recursive .
-```
-- If the changes relate to the docs.md file, update the content for changed modules with `terraform-docs`.
+1. Fork the repository
+2. Open an issue describing your change
+3. Clone your fork
+   ```sh
+   git clone git@github.com:rancher/harvester-cloud.git
+   ```
 
-**Please refer [here](https://github.com/terraform-docs/terraform-docs) for installation of `terraform-docs`**
+4. Add your fork remote
+   ```sh
+   git remote add mycopy <your-fork-url>
+   ```
 
-```bash
- terraform-docs markdown .
-```
-- Commit your Changes.
+5. Create a feature branch
+   ```sh
+   git checkout -b feature-branch-name
+   ```
 
-```sh
-git commit -m "concise and meaningful commit messages about what is changing"
-```
-- Push to the Branch.
+6. Make your changes
 
-```sh
- git push mycopy <feature-branch-name>
-```
-- Open a Pull Request(PR) providing any testing and change details from [here](https://github.com/rancher/harvester-cloud/pulls).
+7. Format Terraform code
+   ```sh
+   terraform fmt -recursive .
+   ```
 
-- After the PR is merged, delete the branch `<feature-branch-name>`.
+8. (Optional) Update docs
+   ```sh
+   terraform-docs markdown .
+   ```
 
-- Dont push a branch to origin/main repository. Push only to forks.
+9. Commit changes
+   ```sh
+   git commit -s -m "meaningful message"
+   ```
 
-### Reviewing and merging
+10. Push to your fork
+   ```sh
+   git push mycopy feature-branch-name
+   ```
 
-Generally, pull requests need at least one approvals from maintainers to be merged.
+11. Open a Pull Request linked to the issue
 
-Once a PR has the necessary approvals, it can be merged. Here’s how the merge should be handled:
-- If the PR is a single logical commit, the merger should use the “Rebase and merge” option. This keeps the git commit history very clean and simple and eliminates noise from "merge commits."
-- If the PR is more than one logical commit, the merger should use the “Create a merge commit” option.
-- If the PR consists of more than one commit because the author added commits to address feedback, the commits should be squashed into a single commit (or more than one logical commit, if it is a big feature that needs more commits). This can be achieved in one of two ways:
-  - The merger can use the “Squash and merge” option. If they do this, the merger is responsible for cleaning up the commit message according to the previously stated commit message guidance.
-  - The pull request author, after getting the requisite approvals, can reorganize the commits as they see fit (using, for example, git rebase -i) and re-push.
+## Review & Merge Policy
+
+- PRs require at least one approval
+- Prefer "Rebase and merge" for single-commit PRs
+- Use "Create merge commit" for multi-commit PRs
+- Squash commits if needed before merge
