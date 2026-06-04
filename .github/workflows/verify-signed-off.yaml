@@ -18,15 +18,17 @@ jobs:
           fetch-depth: 0
       - name: Verify Signed-off-by trailer
         run: |
+          set -e
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git fetch origin ${{ github.base_ref }} --depth=1
-            COMMITS=$(git rev-list origin/${{ github.base_ref }}..HEAD)
+            git fetch origin "${{ github.base_ref }}" "${{ github.head_ref }}"
+            BASE_SHA=$(git merge-base origin/${{ github.base_ref }} origin/${{ github.head_ref }})
+            COMMITS=$(git rev-list "$BASE_SHA..origin/${{ github.head_ref }}")
           else
-            COMMITS=$(git rev-list ${{ github.event.before }}..${{ github.sha }})
+            COMMITS=$(git rev-list "${{ github.event.before }}..${{ github.sha }}")
           fi
           for COMMIT in $COMMITS; do
             echo "Checking commit $COMMIT"
-            if ! git log -1 --pretty=%B "$COMMIT" | grep -q "^Signed-off-by:"; then
+            if ! git show -s --format=%B "$COMMIT" | grep -q "^Signed-off-by:"; then
               echo "ERROR: commit $COMMIT is missing Signed-off-by trailer."
               exit 1
             fi
