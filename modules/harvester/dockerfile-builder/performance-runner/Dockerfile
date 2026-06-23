@@ -1,13 +1,10 @@
-FROM registry.opensuse.org/opensuse/leap:16.0
-
-RUN zypper addrepo -f https://download.opensuse.org/repositories/network:/utilities/15.6/ network-utils
+FROM registry.opensuse.org/opensuse/leap:16.0@sha256:6a8998a33df6164d29d545c1bb8d9dd5a3595206d993b1a43c54de9aa33d8feb
 
 RUN zypper refresh && zypper install -y \
     bash \
     curl \
     jq \
     fio \
-    iperf3 \
     sysbench \
     stress-ng \
     sysstat \
