@@ -101,20 +101,19 @@ jobs:
       - name: Build prompt
         run: |
           cat > prompt.txt <<EOF
-You are analyzing Kubernetes node performance benchmarks for a Harvester cluster.
+          You are analyzing Kubernetes node performance benchmarks for a Harvester cluster.
 
-Tasks:
-- analyze CPU, memory, and storage performance per node
-- compare nodes
-- detect slow or anomalous nodes
-- summarize cluster health
-- produce a report similar to https://github.com/rancher/harvester-cloud/blob/main/docs/PERFORMANCE.md
+          Tasks:
+          - analyze CPU, memory, and storage performance per node
+          - compare nodes
+          - detect slow or anomalous nodes
+          - summarize cluster health
+          - produce a report similar to https://github.com/rancher/harvester-cloud/blob/main/docs/PERFORMANCE.md
 
-DATA:
----
-$(cat results.txt)
-EOF
-
+          DATA:
+          ---
+          $(cat results.txt)
+          EOF
       # Call Gemini API
       - name: Call Gemini API
         run: |
