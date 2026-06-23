@@ -1,5 +1,7 @@
 FROM registry.opensuse.org/opensuse/leap:16.0
 
+RUN zypper addrepo -f https://download.opensuse.org/repositories/network:/utilities/15.6/ network-utils
+
 RUN zypper refresh && zypper install -y \
     bash \
     curl \
