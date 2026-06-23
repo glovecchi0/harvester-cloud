@@ -1,0 +1,155 @@
+name: Harvester Cluster Performance Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      kubeconfig_b64:
+        description: "Base64 encoded kubeconfig"
+        required: true
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      IMAGE: ghcr.io/glovecchio/harvester-cloud/performance-runner:811d472e5c40f1ccd59c18d3fc4fc7090552398b
+    steps:
+      # Checkout
+      - name: Checkout
+        uses: actions/checkout@v4
+      # Install kubectl
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+      # Setup kubeconfig (base64 input)
+      - name: Setup kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ inputs.kubeconfig_b64 }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+      # Get cluster nodes
+      - name: Get nodes
+        run: |
+          kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' > nodes.txt
+      # Run benchmarks in parallel with timeout (5 min per node)
+      - name: Run benchmarks (parallel)
+        run: |
+          set -euo pipefail
+
+          run_on_node () {
+            NODE=$1
+
+            echo "========================================"
+            echo "Launching benchmark on $NODE"
+            echo "========================================"
+
+            kubectl run perf-${NODE} \
+              --image=$IMAGE \
+              --restart=Never \
+              --overrides="{
+                \"apiVersion\": \"v1\",
+                \"spec\": {
+                  \"nodeName\": \"${NODE}\",
+                  \"restartPolicy\": \"Never\"
+                }
+              }"
+
+            echo "Waiting for perf-${NODE} (max 5 minutes)"
+
+            kubectl wait pod perf-${NODE} \
+              --for=condition=Ready \
+              --timeout=60s || true
+
+            kubectl wait pod perf-${NODE} \
+              --for=condition=Succeeded \
+              --timeout=300s || true
+          }
+
+          export -f run_on_node
+          export IMAGE
+
+          cat nodes.txt | xargs -I {} -P 10 bash -c 'run_on_node "$@"' _ {}
+      # Collect logs
+      - name: Collect logs
+        run: |
+          set -euo pipefail
+
+          rm -f results.txt
+
+          for POD in $(kubectl get pods -o name | grep perf-); do
+            NODE=$(echo $POD | cut -d'-' -f2-)
+
+            echo "========================================" >> results.txt
+            echo "NODE: $NODE" >> results.txt
+            echo "========================================" >> results.txt
+
+            kubectl logs $POD >> results.txt || true
+            echo "" >> results.txt
+          done
+      # Cleanup
+      - name: Cleanup pods
+        run: |
+          kubectl delete pods -l run=perf || true
+      # Build Gemini prompt
+      - name: Build prompt
+        run: |
+          cat > prompt.txt <<EOF
+You are analyzing Kubernetes node performance benchmarks for a Harvester cluster.
+
+Tasks:
+- analyze CPU, memory, and storage performance per node
+- compare nodes
+- detect slow or anomalous nodes
+- summarize cluster health
+- produce a report similar to https://github.com/rancher/harvester-cloud/blob/main/docs/PERFORMANCE.md
+
+DATA:
+---
+$(cat results.txt)
+EOF
+      # Call Gemini
+      - name: Call Gemini API
+        run: |
+          jq -n \
+            --rawfile prompt prompt.txt \
+            '{
+              contents: [
+                {
+                  parts: [
+                    { text: $prompt }
+                  ]
+                }
+              ]
+            }' > request.json
+
+          RESPONSE=$(curl -s \
+            -X POST \
+            -H "Content-Type: application/json" \
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${{ secrets.GEMINI_API_KEY }}" \
+            -d @request.json)
+
+          echo "$RESPONSE" > gemini.json
+      # Extract report
+      - name: Extract report
+        id: report
+        run: |
+          REPORT=$(jq -r '.candidates[0].content.parts[0].text // empty' gemini.json)
+
+          if [ -z "$REPORT" ]; then
+            echo "ERROR: empty Gemini response"
+            cat gemini.json
+            exit 1
+          fi
+
+          echo "report<<EOF" >> $GITHUB_OUTPUT
+          echo "$REPORT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      # Publish report
+      - name: Publish report
+        run: |
+          echo "## Harvester Cluster Performance Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.report.outputs.report }}" >> $GITHUB_STEP_SUMMARY
