@@ -6,6 +6,7 @@ on:
 jobs:
   benchmark:
     runs-on: ubuntu-latest
+    environment: KUBECONFIG_B64
     permissions:
       contents: read
 
@@ -24,17 +25,15 @@ jobs:
           sudo mv kubectl /usr/local/bin/
       # Setup kubeconfig (from secret)
       - name: Setup kubeconfig
-        env:
-          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
         run: |
           mkdir -p ~/.kube
 
-          if [ -z "$KUBECONFIG_B64" ]; then
+          if [ -z "${{ secrets.KUBECONFIG_B64 }}" ]; then
             echo "ERROR: KUBECONFIG_B64 secret is not set"
             exit 1
           fi
 
-          echo "$KUBECONFIG_B64" | base64 -d > ~/.kube/config
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
       # Get cluster nodes
       - name: Get nodes
