@@ -62,15 +62,29 @@ jobs:
                 }
               }"
 
-            echo "Waiting for perf-${NODE} (max 5 minutes)"
+            echo "Waiting for perf-${NODE} to complete (max 5 minutes)"
 
-            kubectl wait pod perf-${NODE} \
-              --for=condition=Ready \
-              --timeout=60s || true
+            if ! kubectl wait \
+              --for=jsonpath='{.status.phase}'=Succeeded \
+              pod/perf-${NODE} \
+              --timeout=300s; then
 
-            kubectl wait pod perf-${NODE} \
-              --for=condition=Succeeded \
-              --timeout=300s || true
+              echo "Benchmark pod perf-${NODE} did not complete successfully."
+
+              echo ""
+              echo "===== POD STATUS ====="
+              kubectl get pod perf-${NODE} -o wide || true
+
+              echo ""
+              echo "===== POD DESCRIPTION ====="
+              kubectl describe pod perf-${NODE} || true
+
+              echo ""
+              echo "===== POD LOGS ====="
+              kubectl logs perf-${NODE} || true
+
+              exit 1
+            fi
           }
 
           export -f run_on_node
